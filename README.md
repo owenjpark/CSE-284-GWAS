@@ -10,3 +10,8 @@ pip install cyvcf2 pandas numpy scipy
 ## Complete Usage
 
 ## Credits
+
+## Steps for Next Week
+- Clumping
+- Least-Squares from scratch
+- Maybe test on bigger datasets
