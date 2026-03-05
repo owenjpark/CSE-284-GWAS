@@ -46,7 +46,7 @@ Runs two rounds of GWAS using simple linear regression:
 Both runs filter SNPs with MAF < 1% and report effect size (beta), p-value, and sample size per SNP.
 
 ### `src/results.ipynb`
-Compares the Python GWAS results to PLINK's output. For both the no-covariate and covariate runs, it generates side-by-side Manhattan and QQ plots, scatter plots of effect sizes and p-values, and computes beta correlations and top-SNP overlap between Python and PLINK. The covariate-adjusted run achieves 10/10 top-SNP overlap and ~0.986 beta correlation with PLINK.
+Compares the Python GWAS results to PLINK's output. For both the no-covariate and covariate runs, it generates side-by-side Manhattan and QQ plots, scatter plots of effect sizes and p-values, and computes beta correlations and top-SNP overlap between Python and PLINK. The covariate-adjusted run achieves 10/10 top-SNP overlap and ~0.991 beta correlation with PLINK.
 
 # File Structure
 
