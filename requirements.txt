@@ -1,0 +1,7 @@
+cyvcf2
+numpy
+pandas
+matplotlib
+scikit-learn
+scipy
+qqman
