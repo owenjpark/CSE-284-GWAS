@@ -1,8 +1,14 @@
 # CSE-284-GWAS
-This is a project for CSE 284 Personal Genomics for Bioinformaticians. It implements a Genome-Wide Association Study (GWAS) pipeline from scratch in Python, performing single-variant association testing where each SNP is independently tested for association with a quantitative phenotype (e.g. height, BMI, weight) using linear regression. The pipeline covers the full workflow from raw genotype data (VCF format) through computing principal components via SVD and using them as covariates, with results visualized via QQ and Manhattan plots and validated against PLINK using 1000 Genomes data and simulated phenotypes.
+This CSE 284 project reimplements PLINK's `--pca`, `--linear`, and `--clump` commands from scratch in Python, reproducing a complete GWAS pipeline. At a high-level, our implementation of each command does the following:
+
+1. `--pca` computes principal principal components by standardizing the genotype matrix, constructing a genetic relationship matrix (GRM), and performing eigendecomposition to obtain components that capture population structure such as ancestry.
+
+2. `--linear` (GWAS) computes P-values and effect sizes by residualizing the phenotype and genotype data on covariates, then performing per-SNP linear regression.
+
+3. `--clump` identifies independent lead SNPs by filtering SNPs by P-value threshold, selecting the most significant SNP as the lead, and grouping nearby SNPs within a defined genomic window and LD threshold.
 
 ## Requirements
-This project requires **Python 3.8 or higher**.
+This was tested on **Python 3.14.3**.
 
 ### Dependencies
 The following Python libraries are required:
@@ -22,33 +28,117 @@ Install all dependencies using:
 pip install -r requirements.txt
 ```
 
-
 ## Usage
-1. Place the `ps3_gwas_covar.assoc.linear` and `ps3_gwas.assoc.linear` files from `public/ps3` on DataHub into the `plink_results/` directory. These files were not included in the repository due to GitHub file size limitations.
+Below is a description of each of our implemented command's usage, available flags, outputs, and an example.
 
-2. Run the notebooks in the following order:
+### PCA (`pca.py`)
+```bash
+python pca.py --vcf <vcf_file> --out <output_prefix> [options]
+```
 
-- `src/PCA.ipynb` – performs PCA to estimate population structure  
-- `src/gwas.ipynb` – runs GWAS association tests  
-- `src/results.ipynb` – generates result summaries and plots
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `--vcf` | Yes | — | Path to input VCF file |
+| `--out` | Yes | — | Output file prefix |
+| `--num_pcs` | No | all | Number of principal components to compute |
 
-Running these notebooks sequentially performs the full GWAS analysis, generates visualizations (e.g., Manhattan and QQ plots), and compares the results to those produced by PLINK.
+Outputs `<out>.eigenvec` and `<out>.eigenval`.
 
-## Source File Descriptions
-### `src/PCA.ipynb`
-Computes the top 3 principal components (PCs) from the VCF genotype data to capture population structure. Reads all SNPs into a genotype matrix, imputes missing values with per-SNP means, standardizes, and runs truncated SVD. Signs are flipped for consistency, and the resulting eigenvectors are written to `python_results/eigenvec.txt`. A correlation check against PLINK's PCA output validates the result (~0.9999 correlation).
+**Example** (run from root of project):
+```bash
+python scripts/PCA.py \
+    --num_pcs 3 \
+    --vcf data/ps3_gwas.vcf.gz \
+    --out python_results/pca
+```
 
-### `src/gwas.ipynb`
-Runs two rounds of GWAS using simple linear regression:
-1. **Without covariates** – regresses each SNP's dosage against the phenotype directly (OLS), writing results to `python_results/gwas_results.tsv`.
-2. **With PC covariates** – projects out the effect of the top 3 PCs from both the phenotype and genotype before regression (partial regression), writing results to `python_results/gwas_results_covar.tsv`.
 
-Both runs filter SNPs with MAF < 1% and report effect size (beta), p-value, and sample size per SNP.
+### GWAS (`gwas.py`)
+```bash
+python gwas.py --vcf <vcf_file> --phen <phenotype_file> --out <output_prefix> [options]
+```
 
-### `src/results.ipynb`
-Compares the Python GWAS results to PLINK's output. For both the no-covariate and covariate runs, it generates side-by-side Manhattan and QQ plots, scatter plots of effect sizes and p-values, and computes beta correlations and top-SNP overlap between Python and PLINK. The covariate-adjusted run achieves 10/10 top-SNP overlap and ~0.991 beta correlation with PLINK.
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `--vcf` | Yes | — | Path to input VCF file |
+| `--phen` | Yes | — | Path to phenotype file (FID, IID, PHEN) |
+| `--out` | Yes | — | Output file prefix |
+| `--covar` | No | `false` | Include PC covariates in regression (flag) |
+| `--pcs` | Yes if --covar flag| — | Path to eigenvec/PC file (*required if `--covar`) |
+| `--maf` | No | `0.01` | Minor allele frequency threshold |
 
-# File Structure
+Output is written to `<out>.assoc.linear`.
+
+**Example** (run from root of project):
+```bash
+python scripts/GWAS.py \
+    --vcf data/ps3_gwas.vcf.gz \
+    --phen data/ps3_gwas.phen \
+    --pcs plink_results/ps3_gwas.eigenvec \
+    --covar \
+    --maf 0.05 \
+    --out python_results/gwas_covar
+```
+
+### Clump (`clumping.py`)
+
+```bash
+python clump.py --clump <gwas_file> --vcf <vcf_file> --out <output_prefix> [options]
+```
+
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `--clump` | Yes | — | Path to GWAS summary statistics file |
+| `--vcf` | Yes | — | Path to VCF file used in the GWAS |
+| `--out` | Yes | — | Output file prefix |
+| `--p1` | No | `1e-4` | P-value threshold for index (lead) SNPs |
+| `--p2` | No | `0.01` | P-value threshold for clump member SNPs |
+| `--kb-window` | No | `250` | Window size in kilobases |
+| `--r2` | No | `0.5` | LD r² threshold |
+
+Output is written to `<out>.clumped`.
+
+**Example** (run from root of project):
+```bash
+python scripts/clumping.py \
+    --clump plink_results/ps3_gwas_covar.assoc.linear \
+    --vcf data/ps3_gwas.vcf.gz \
+    --p1 5e-8 \
+    --out python_results/gwas_covar
+```
+
+## Comparison Against PLINK
+To evaluate our implementation, we ran equivalent commands in both our scripts and PLINK and compared the results in `results/results.ipynb`. The exact commands we ran are listed in `results/commands.txt` for transparency.
+
+To run the notebook yourself, you will need to copy `ps3_gwas_covar.assoc.linear` and `ps3_gwas.assoc.linear` from `public/ps3` on DataHub into the `plink_results/` directory. These files are excluded from the repository due to GitHub file size limits.
+
+### PLINK PCA vs. Our PCA
+The top 3 PCs show strong correlation with PLINK's output (PC1: ~1.0, PC2: ~-0.977, PC3: ~0.970). The high magnitude correlations confirm our method produces equivalent results. The negative signs are expected, as eigenvector sign is arbitrary.
+
+![](graph_results/pca.png)
+
+### PLINK GWAS vs. Our GWAS
+Here we compare GWAS results with PC covariates included. Results without covariates were consistent as well but are omitted for brevity (see `results/results.ipynb`).
+
+The Manhattan and QQ plots match PLINK's output closely:
+
+![](graph_results/plink_gwas.png)
+![](graph_results/python_gwas.png)
+
+Effect sizes show a correlation of ~1 with PLINK's output:
+
+![](graph_results/effect_size.png)
+
+P-values show a correlation of ~0.999:
+
+![](graph_results/pval.png)
+
+### PLINK Clumping vs. Our Clumping
+Comparing clumping results, both methods identify 3 lead SNPs with 2 overlapping. Upon further inspection, the one differing lead SNP in PLINK's output falls within the clump of our corresponding lead SNP, indicating the two methods identify the same underlying signal.
+
+![](graph_results/clump.png)
+
+## File Structure
 
 ```
 CSE-284-GWAS/
@@ -56,61 +146,38 @@ CSE-284-GWAS/
 ├── requirements.txt
 ├── data/
 │   ├── ps3_gwas.vcf.gz               # Input genotype data (VCF format)
+│   ├── ps3_gwas_deduped.vcf.gz       # Deduplicated VCF (used for clumping)
 │   └── ps3_gwas.phen                 # Simulated phenotype file
-├── src/
-│   ├── PCA.ipynb                     # PCA via SVD to compute population structure
-│   ├── gwas.ipynb                    # GWAS association testing (linear regression)
-│   └── results.ipynb                 # Visualization (Manhattan/QQ plots) and PLINK comparison
+├── scripts/
+│   ├── PCA.py                        # PCA implementation
+│   ├── gwas.py                       # GWAS association testing (linear regression)
+│   └── clumping.py                   # LD clumping implementation
+├── notebooks/
+│   ├── PCA.ipynb                     # PCA development notebook
+│   ├── gwas.ipynb                    # GWAS development notebook
+│   └── clumping.ipynb                # Clumping development notebook
+├── results/
+│   ├── results.ipynb                 # Comparison and visualization notebook
+│   └── commands.txt                  # Exact PLINK commands used for comparison
+├── graph_results/
+│   ├── pca.png                       # PCA correlation plot (PLINK vs. ours)
+│   ├── plink_gwas.png                # PLINK Manhattan/QQ plots
+│   ├── python_gwas.png               # Our Manhattan/QQ plots
+│   ├── effect_size.png               # Effect size correlation plot
+│   ├── pval.png                      # P-value correlation plot
+│   └── clump.png                     # Clumping comparison plot
 ├── python_results/
-│   ├── eigenvec.txt                  # Principal components from custom PCA
-│   ├── gwas_results.tsv              # GWAS results (no covariates)
-│   └── gwas_results_covar.tsv        # GWAS results (with PC covariates)
+│   ├── pca.eigenval                  # Our PCA eigenvalues
+│   ├── pca.eigenvec                  # Our PCA eigenvectors
+│   ├── gwas.assoc.linear             # Our GWAS results (no covariates)
+│   ├── gwas_covar.assoc.linear       # Our GWAS results (with PC covariates)
+│   ├── gwas.clumped                  # Our clumping results (no covariates)
+│   └── gwas_covar.clumped            # Our clumping results (with PC covariates)
 └── plink_results/
     ├── ps3_gwas.eigenval             # PLINK PCA eigenvalues
     ├── ps3_gwas.eigenvec             # PLINK PCA eigenvectors
     ├── ps3_gwas.assoc.linear         # PLINK GWAS results (no covariates)
-    └── ps3_gwas_covar.assoc.linear   # PLINK GWAS results (with covariates)
+    ├── ps3_gwas_covar.assoc.linear   # PLINK GWAS results (with covariates)
+    ├── ps3_gwas_clump.clumped        # PLINK clumping results (no covariates)
+    └── ps3_gwas_covar_clump.clumped  # PLINK clumping results (with covariates)
 ```
-
-
-## Current Results
-
-### Manhattan and QQ Plots
-
-Below are the Manhattan and QQ plots generated by **PLINK’s GWAS pipeline** and **our implementation**, both including PC covariates.
-
-**PLINK Results**:
-
-![PLINK GWAS Manhattan and QQ Plot](graph_results/plink_gwas.png)
-
-**Our Python Implementation**:
-
-![Python GWAS Manhattan and QQ Plot](graph_results/python_gwas.png)
-
-The two sets of plots appear nearly identical, providing strong evidence that our implementation correctly reproduces the results of the PLINK pipeline.
-
----
-
-### Effect Size and P-Value Comparison
-
-We also compared the **effect sizes** and **p-values** for SNPs between the two methods.
-
-**Effect Size Comparison**:
-
-![Effect Size](graph_results/effect_size.png)
-
-**P-Value Comparison**:
-
-![P-Value](graph_results/p_val.png)
-
-Both plots closely follow the diagonal line, indicating strong agreement between our pipeline and the results produced by PLINK.
-
-## Steps for Next Week
-
-**Clumping** — After GWAS, many nearby SNPs appear significant simply because they are in linkage disequilibrium (LD) with each other, not because they are independently associated. Clumping reduces these hits to a representative set of index SNPs by: (1) ranking all SNPs by p-value, (2) selecting the top SNP as an index, (3) removing all SNPs within a window (e.g., 250 kb) that are highly correlated with it (r² > 0.5), and (4) repeating. This yields a pruned set of independent association signals. We can implement this from scratch using the genotype matrix to compute LD (r²) between SNP pairs.
-
-**Least-Squares from scratch** — Right now the regression is handled by library functions. The next step is to implement it by hand, directly solving for the effect sizes, computing standard errors, and deriving p-values without leaning on scipy or sklearn. This makes the math more transparent and gives us more flexibility in how we handle covariates.
-
-**Make the pipeline work with any dataset** — Everything is currently hardcoded for one specific dataset. We want to convert the notebooks into scripts where you can just pass in a VCF and phenotype file and have the whole pipeline run, making it easy to apply to new data without touching the code.
-
-**Test on bigger datasets** — The current dataset is relatively small. Running on larger, real-world data will be a good stress test for performance and correctness, and will be much easier once the pipeline is scriptable.

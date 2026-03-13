@@ -1,0 +1,70 @@
+PLINK Commands:
+
+plink \
+    --vcf ~/public/ps3/ps3_gwas.vcf.gz \
+    --pheno ~/public/ps3/ps3_gwas.phen \
+    --allow-no-sex \
+    --linear \
+    --maf 0.05 \
+    --out ps3_gwas
+
+plink \
+    --vcf ~/public/ps3/ps3_gwas.vcf.gz \
+    --pca 3 \
+    --out ps3_gwas
+
+plink \
+    --vcf ~/public/ps3/ps3_gwas.vcf.gz \
+    --pheno ~/public/ps3/ps3_gwas.phen \
+    --allow-no-sex \
+    --linear hide-covar \
+    --maf 0.05 \
+    --covar ps3_gwas.eigenvec \
+    --out ps3_gwas_covar
+
+plink \
+    --vcf ps3_gwas_deduped.vcf.gz \
+    --clump ps3_gwas.assoc.linear \
+    --clump-p1 5e-8 \
+    --out ps3_gwas_clump
+
+plink \
+    --vcf ps3_gwas_deduped.vcf.gz \
+    --clump ps3_gwas_covar.assoc.linear \
+    --clump-p1 5e-8 \
+    --out ps3_gwas_covar_clump
+
+
+
+Python Commands:
+
+python scripts/PCA.py \
+    --num_pcs 3 \
+    --vcf data/ps3_gwas.vcf.gz \
+    --out python_results/pca
+
+python scripts/GWAS.py \
+    --vcf data/ps3_gwas.vcf.gz \
+    --phen data/ps3_gwas.phen \
+    --pcs plink_results/ps3_gwas.eigenvec \
+    --covar \
+    --maf 0.05 \
+    --out python_results/gwas_covar
+
+python scripts/GWAS.py \
+    --vcf data/ps3_gwas.vcf.gz \
+    --phen data/ps3_gwas.phen \
+    --maf 0.05 \
+    --out python_results/gwas
+
+python scripts/clumping.py \
+    --clump plink_results/ps3_gwas.assoc.linear \
+    --vcf data/ps3_gwas.vcf.gz \
+    --p1 5e-8 \
+    --out python_results/gwas
+
+python scripts/clumping.py \
+    --clump plink_results/ps3_gwas_covar.assoc.linear \
+    --vcf data/ps3_gwas.vcf.gz \
+    --p1 5e-8 \
+    --out python_results/gwas_covar
