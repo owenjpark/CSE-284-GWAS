@@ -1,4 +1,4 @@
-PLINK Commands:
+PLINK Commands (on Datahub):
 
 plink \
     --vcf ~/public/ps3/ps3_gwas.vcf.gz \
@@ -36,7 +36,7 @@ plink \
 
 
 
-Python Commands:
+Python Commands (from project root):
 
 python scripts/PCA.py \
     --num_pcs 3 \
