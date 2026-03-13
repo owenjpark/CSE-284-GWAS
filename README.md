@@ -1,7 +1,7 @@
 # CSE-284-GWAS
 This CSE 284 project reimplements PLINK's `--pca`, `--linear`, and `--clump` commands from scratch in Python, reproducing a complete GWAS pipeline. At a high-level, our implementation of each command does the following:
 
-1. `--pca` computes principal principal components by standardizing the genotype matrix, constructing a genetic relationship matrix (GRM), and performing eigendecomposition to obtain components that capture population structure such as ancestry.
+1. `--pca` computes principal components by standardizing the genotype matrix, constructing a genetic relationship matrix (GRM), and performing eigendecomposition to obtain components that capture population structure such as ancestry.
 
 2. `--linear` (GWAS) computes P-values and effect sizes by residualizing the phenotype and genotype data on covariates, then performing per-SNP linear regression.
 
@@ -46,7 +46,7 @@ Outputs `<out>.eigenvec` and `<out>.eigenval`.
 
 **Example** (run from root of project):
 ```bash
-python scripts/PCA.py \
+python scripts/pca.py \
     --num_pcs 3 \
     --vcf data/ps3_gwas.vcf.gz \
     --out python_results/pca
@@ -149,11 +149,11 @@ CSE-284-GWAS/
 │   ├── ps3_gwas_deduped.vcf.gz       # Deduplicated VCF (used for clumping)
 │   └── ps3_gwas.phen                 # Simulated phenotype file
 ├── scripts/
-│   ├── PCA.py                        # PCA implementation
+│   ├── pca.py                        # PCA implementation
 │   ├── gwas.py                       # GWAS association testing (linear regression)
 │   └── clumping.py                   # LD clumping implementation
 ├── notebooks/
-│   ├── PCA.ipynb                     # PCA development notebook
+│   ├── pca.ipynb                     # PCA development notebook
 │   ├── gwas.ipynb                    # GWAS development notebook
 │   └── clumping.ipynb                # Clumping development notebook
 ├── results/
