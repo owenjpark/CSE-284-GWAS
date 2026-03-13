@@ -117,6 +117,8 @@ The top 3 PCs show strong correlation with PLINK's output (PC1: ~1.0, PC2: ~-0.9
 
 ![](graph_results/pca.png)
 
+Our's took 36 seconds while PLINK's took 8 seconds.
+
 ### PLINK GWAS vs. Our GWAS
 Here we compare GWAS results with PC covariates included. Results without covariates were consistent as well but are omitted for brevity (see `results/results.ipynb`).
 
@@ -133,10 +135,14 @@ P-values show a correlation of ~0.999:
 
 ![](graph_results/pval.png)
 
+Our's took 57 seconds while PLINK's took 16 seconds.
+
 ### PLINK Clumping vs. Our Clumping
 Comparing clumping results, both methods identify 3 lead SNPs with 2 overlapping. Upon further inspection, the one differing lead SNP in PLINK's output falls within the clump of our corresponding lead SNP, indicating the two methods identify the same underlying signal.
 
 ![](graph_results/clump.png)
+
+Our's took 12 seconds while PLINK's took 6 seconds.
 
 ## File Structure
 
