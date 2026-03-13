@@ -19,9 +19,9 @@ def parse_args():
         help="Path to input VCF file"
     )
     parser.add_argument(
-        "--outdir",
-        default=".",
-        help="Output directory (default: current directory)"
+        "--out",
+        required=True,
+        help="Output file prefix"
     )
     return parser.parse_args()
 
@@ -87,28 +87,28 @@ def compute_pca_from_genotypes(X, num_pcs=None):
     return eigenvals, PCs
 
 
-def save_results(samples, pcs, eigenvals, outdir):
+def save_results(samples, pcs, eigenvals, prefix):
     k = pcs.shape[1]
 
-    # Ensure output directory exists
-    os.makedirs(outdir, exist_ok=True)
-
-    # Save eigenvectors
     pcs_df = pd.DataFrame(pcs, columns=[f"PC{i+1}" for i in range(k)])
     pcs_df.insert(0, "IID", samples)
     pcs_df.insert(0, "FID", samples)
-    pcs_df.to_csv(os.path.join(outdir, "eigenvec.txt"), sep=" ", header=False, index=False)
 
-    # Save eigenvalues
-    eval_df = pd.DataFrame({"PC": [f"PC{i+1}" for i in range(k)],"eigenvalue": eigenvals})
-    eval_df.to_csv(os.path.join(outdir, "eigenval.txt"), sep="\t", index=False)
+    pcs_df.to_csv(f"{prefix}.eigenvec", sep=" ", header=False, index=False)
+
+    eval_df = pd.DataFrame({
+        "PC": [f"PC{i+1}" for i in range(k)],
+        "eigenvalue": eigenvals
+    })
+
+    eval_df.to_csv(f"{prefix}.eigenval", sep="\t", index=False)
 
 
 def main():
     args = parse_args()
     samples, X = load_genotype_matrix(args.vcf)
     eigenvals, pcs = compute_pca_from_genotypes(X, args.num_pcs)
-    save_results(samples, pcs, eigenvals, args.outdir)
+    save_results(samples, pcs, eigenvals, args.out)
 
 
 if __name__ == "__main__":
