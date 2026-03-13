@@ -26,8 +26,8 @@ def parse_args():
     parser.add_argument(
         "--p1",
         type=float,
-        default=5e-8,
-        help="P-value threshold for index SNPs (default: 5e-8)"
+        default=1e-4,
+        help="P-value threshold for index SNPs (default: 1e-4)"
     )
     parser.add_argument(
         "--p2",
@@ -199,7 +199,8 @@ def clump(args):
     clumped["SP2"] = clumped["SNP"].map(lambda snp: ",".join(lead_to_sp2.get(snp, [])))
 
     # Save
-    clumped.to_csv(args.out, sep="\t", index=False)
+    out_file = f"{args.out}.clumped"
+    clumped.to_csv(out_file, sep="\t", index=False)
 
 
 def main():

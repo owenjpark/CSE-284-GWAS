@@ -99,7 +99,7 @@ def run_gwas(args):
 
     # Set output filename from prefix
     prefix = args.out
-    out_path = f"{prefix}.linear"
+    out_path = f"{prefix}.assoc.linear"
 
     # Ensure output directory exists
     out_dir = os.path.dirname(out_path)
