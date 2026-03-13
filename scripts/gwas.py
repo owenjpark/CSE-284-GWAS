@@ -97,11 +97,11 @@ def run_gwas(args):
         covar_coefs_y = np.linalg.solve(C.T @ C, C.T @ y)
         y_resid = y - C @ covar_coefs_y
 
+    # Set output filename from prefix
+    prefix = args.out
+    out_path = f"{prefix}.linear"
+
     # Ensure output directory exists
-    out_path = args.out
-    if not out_path.endswith(".tsv"):
-        out_path += ".tsv"
-        
     out_dir = os.path.dirname(out_path)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
